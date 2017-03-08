@@ -41,15 +41,19 @@ AuthenticationService.prototype.verifyToken = function(id, token) {
   }
   
   // check if this token has already been saved
-  if (this._hasServiceConsumerToken(id, token)){
+  var savedToken = this._getServiceConsumerToken(id);
+  if (savedToken && savedToken == token){
     return true;
   }
   
-  // if no token found, ask the master node to authenticate it
+  // if no token found or if no match, ask the master node to authenticate it
   var isValid = this.directoryService.isServiceConsumerTokenValid(id, token);
   if (isValid) {
     // perist token for further validation
     var resp = document.save({key: id, token: token});
+    if (resp.metadata.status == "failure") {
+      log.error("AuthenticationService.verifyToken: could not persist token (" + id + "," + token + ")\n" + JSON.stringify(resp));
+    }
   }
   
   return isValid;
@@ -79,12 +83,36 @@ AuthenticationService.prototype.isAuthenticated = function(id, token){
 };
 
 /**
+ * This method is implemented by service provider. it is invoked by a master node that wishes to notify
+ * it's nodes about the revocation of a token (corresponding has been moved out of the cluster, or token has been renewed)
+ * @method discardToken
+ * @param {String} id: node id
+ * @param {String} token: token
+ * @return {Boolean} true if deleted, false otherwise
+ */
+AuthenticationService.prototype.discardToken = function(id, token){  
+  
+  var savedToken = this._getServiceConsumerToken(id)
+  if (savedToken != token) {
+    return false;
+  }
+  
+  var resp = document.delete(id);
+  if (resp.metadata.status == "failure") {
+    
+    log.error("AuthenticationService.verifyToken: could not delete token document " + id + "\n" + JSON.stringify(resp));
+    return false;
+  }
+  
+  return true;
+};
+
+/**
  * @method _getServiceConsumerToken
  * @param {String} id: node id,
- * @param {String} token: node token
  * @return {String} the token if found, null otherwise
  */
-AuthenticationService.prototype._getServiceConsumerToken = function(id, token) {
+AuthenticationService.prototype._getServiceConsumerToken = function(id) {
   
   var resp = document.get(id);
   if (resp.metadata.status == "failure") {

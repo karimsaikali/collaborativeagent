@@ -17,5 +17,5 @@ var serviceDirectory = {
 
 agentType = AGENT_TYPES.MASTER;
 agentName = "master_node";
-agentEndpoint = "https://api.scriptrapps.io";
-agentToken = "SUM3NjY4QUIyOA==";			
+//agentEndpoint = "https://api.scriptrapps.io";
+//agentToken = "SUM3NjY4QUIyOA==";			

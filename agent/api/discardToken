@@ -3,4 +3,27 @@
  * every time the same consumer sends it a request. However, the service provider should be notified by the master
  * node in case the token was renewed or if the associated node was removed. Master nodes will invoke the current API
  * to send this notification to their subscribed service providers. 
+ * @module agent/api/discardToken
+ * @param {String} id: identifier of a node
+ * @param {String} token: node's token
+ * @return {Boolean} true or false
  */
+
+var agent = require("/agent/smartAgent");
+
+try {
+  
+  var nodeData = request.parameters ? request.parameters : {};
+  if (request.body) {
+    
+    for (var key in request.body){
+      nodeData[key] = request.body[key];
+    }
+  }
+  
+  var smartAgent = new agent.SmartAgent();
+  var authenticationService = smartAgent.getAuthenticationService();
+  return authenticationService.isAuthenticated(nodeData.id, nodeData.token);
+}catch(exception){
+  return exception;
+}

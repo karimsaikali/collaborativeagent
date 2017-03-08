@@ -280,6 +280,12 @@ SmartAgent.prototype.loadServiceProvider = function(providerName) {
  */
 SmartAgent.prototype._loadConfig = function() { 
   
+  var token = storage.global.agent.token; // load the token obtained from master node if any
+  if (!token) {
+    var res = this.directory.addToMasterNode(config.serviceDirectory.token);
+    token = res.token;
+    id = res.id;
+  }
   return {
    
     serviceDirUrl: config.serviceDirectory.url,
