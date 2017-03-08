@@ -1,0 +1,21 @@
+const AGENT_TYPES = {
+  MASTER: "MASTER",
+  NODE: "NODE"
+};
+
+const AGENT_ROLES = {
+  SERVICE_PROVIDER: "SERVICE_PROVIDER",
+  SERVICE_CONSUMER: "SERVICE_CONSUMER",
+  SERVICE_PROVIDER_CONSUMER: "SERVICE_PROVIDER_CONSUMER" 
+};
+
+var serviceDirectory = {
+  
+  url: "",
+  token: "" // place here the token obtained when adding the current node to the master node
+};
+
+agentType = AGENT_TYPES.MASTER;
+agentName = "master_node";
+agentEndpoint = "https://api.scriptrapps.io";
+agentToken = "SUM3NjY4QUIyOA==";			

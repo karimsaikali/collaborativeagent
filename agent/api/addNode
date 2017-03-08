@@ -1,0 +1,29 @@
+/**
+ * API to add a node to the current cluster
+ * @module agent/api/addNode
+ * @param {String} endpoint: can be a URL or an IP
+ * @param {String} name
+ * @param {String} password: optional, defaults to name
+ * @param {String} nodeToken: a token to communicate with the remote node 
+ * @param {String} type: optiona, one of the available NODE_TYPES, defaults to NODE_TYPES.EDGE
+ * @return {Object} {id, token}
+ */
+
+var agent = require("/agent/smartAgent");
+
+try {
+  
+  var nodeData = request.parameters ? request.parameters : {};
+  if (request.body) {
+    
+    for (var key in request.body){
+      nodeData[key] = request.body[key];
+    }
+  }
+  
+  var smartAgent = new agent.SmartAgent();
+  var nodeManager = smartAgent.getNodeManager();
+  return nodeManager.addNode(nodeData);
+}catch(exception){
+  return exception;
+}

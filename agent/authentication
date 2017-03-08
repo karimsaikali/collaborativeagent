@@ -1,0 +1,95 @@
+var document = require("document");
+
+/**
+ * Provides services to validate authentication tokens
+ * @class AuthenticationService
+ * @constructor
+ * @param {Object} nodeManager: instance of /nodemanagement.NodeManager
+ * @param {Object} directoryService: instance of /directoryDelegae.DirectoryService
+ */
+function AuthenticationService(nodeManager, directoryService, config) {
+  
+  this.nodeManager = nodeManager;
+  this.directoryService = directoryService;
+  if (config){
+    
+    for (var key in config){
+      this[key] = config[key];
+    }
+  }
+}
+
+/**
+ * Check auth token validity sent by a given service consumer. 
+ * This method is implemented by service provider nodes. The method can check if the token is known
+ * to the current service provider (persisted) or can ask the master node to authenticate the token
+ * by invoking its 
+ * and used by service provider nodes that belong to the cluster
+ * @method verifyToken
+ * @param {String} id: node id
+ * @param {String} token: node's auth token
+ * @return {Boolean} true is token is verified, false otherwise
+ */
+AuthenticationService.prototype.verifyToken = function(id, token) {
+  
+  if (!id || !token) {
+    
+    throw {
+      errorCode: "Missing_Parameter",
+      errorDetail: "AuthenticationService.verifyToken: id and token cannot be null or empty"
+    };
+  }
+  
+  // check if this token has already been saved
+  if (this._hasServiceConsumerToken(id, token)){
+    return true;
+  }
+  
+  // if no token found, ask the master node to authenticate it
+  var isValid = this.directoryService.isServiceConsumerTokenValid(id, token);
+  if (isValid) {
+    // perist token for further validation
+    var resp = document.save({key: id, token: token});
+  }
+  
+  return isValid;
+};
+
+/**
+ * Check auth token validity for a given node id. This method is implemented by master nodes
+ * and used by service provider nodes that belong to the cluster
+ * @method isAuthenticated
+ * @param {String} id: node id
+ * @param {String} token: node's auth token
+ * @return {Boolean} true is token is verified, false otherwise
+ */
+AuthenticationService.prototype.isAuthenticated = function(id, token){  
+ 
+  try {
+    
+    var node = this.nodeManager.getNode(id);
+    return node.auth_token == token;
+  }catch(exception){
+   
+    throw {
+      errorCode: (exception.errorCode ? exception.errorCode : "Execution_Error"),
+      errorDetail: "AuthenticationService.isAuthenticated: " + (exception.errorDetail ? exception.errorDetail : JSON.stringify(exception))
+    };
+  }  
+};
+
+/**
+ * @method _getServiceConsumerToken
+ * @param {String} id: node id,
+ * @param {String} token: node token
+ * @return {String} the token if found, null otherwise
+ */
+AuthenticationService.prototype._getServiceConsumerToken = function(id, token) {
+  
+  var resp = document.get(id);
+  if (resp.metadata.status == "failure") {
+    return null;
+  }
+  
+  return resp.result.token;
+};

@@ -1,0 +1,19 @@
+/**
+ * API to be remove a node from the current cluster
+ * @module agent/api/removeNode
+ * @param {String} endpoint
+ * @return {Object} {id, token}
+ */
+
+var log = require("log");
+log.setLevel("info");
+var nodemanagement = require("/agent/nodemanagement");
+
+try {
+  
+  var nodeId = request.parameters.nodeId;
+  var nodeManager = new nodemanagement.NodeManager();
+  return nodeManager.removeNode(nodeId);
+}catch(exception){
+  return exception;
+}

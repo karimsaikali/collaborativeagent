@@ -1,0 +1,28 @@
+/**
+ * API exposed by master node to validate the token provided by a node in the cluster
+ * The token usually pertains to a service consumer node and the requesting node is usually
+ * a service provider
+ * @module agent/api/isAuthenticated
+ * @param {String} id: identifier of a node
+ * @param {String} token: node's token
+ * @return {Boolean} true or false
+ */
+
+var agent = require("/agent/smartAgent");
+
+try {
+  
+  var nodeData = request.parameters ? request.parameters : {};
+  if (request.body) {
+    
+    for (var key in request.body){
+      nodeData[key] = request.body[key];
+    }
+  }
+  
+  var smartAgent = new agent.SmartAgent();
+  var authenticationService = smartAgent.getAuthenticationService();
+  return authenticationService.isAuthenticated(nodeData.id, nodeData.token);
+}catch(exception){
+  return exception;
+}

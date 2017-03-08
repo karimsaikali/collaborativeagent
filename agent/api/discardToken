@@ -1,0 +1,6 @@
+/**
+ * A service provider node can decide to persist a service consumers token to avoid asking the master node to validate the token
+ * every time the same consumer sends it a request. However, the service provider should be notified by the master
+ * node in case the token was renewed or if the associated node was removed. Master nodes will invoke the current API
+ * to send this notification to their subscribed service providers. 
+ */

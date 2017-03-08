@@ -1,0 +1,255 @@
+var log = require("log"); log.setLevel("info");
+var device = require("device");
+var group = require("group");
+
+const NODES_GROUP = "nodes_in_scope";
+const NODE_TYPES = {
+  EDGE: "EDGE",
+  DEVICE: "DEVICE",
+  CLOUD: "CLOUD"
+};
+
+/**
+ * Handles the deployment of agents on nodes that are related to the current - referent - node
+ * @class NodeManager
+ * @constructor
+ * @param {Object} config: master node config
+ */
+function NodeManager(config) {
+  
+  // check for the existence of the "nodes_in_scope" group. If group does not exist, create it
+  var resp = group.list();
+  var exists = false;
+  if (resp.result && resp.result.groups) {
+    
+    for (var i = 0; !exists && i < resp.result.groups.length; i++) {
+      exists = resp.result.groups[i].name == NODES_GROUP;
+    }
+  }
+  
+  if (!exists){
+    group.create(NODES_GROUP);
+  }
+  
+  if (config){
+    
+    for (var key in config){
+      this[key] = config[key];
+    }
+  }
+}
+
+/**
+ * Turn the current node into a referent for a remote nod, i.e. the current node provides the shared directory and authentication services
+ * @method addNode
+ * @param {Object} [node]
+ * @param {String} [node.endpoint]: can be a URL or an IP
+ * @param {String} [node.name]
+ * @param {String} [node.password]: optional, defaults to name
+ * @param {String} [node.type]: optional, one of the available NODE_TYPES, defaults to NODE_TYPES.EDGE
+ * @return {Object} {id, token}
+ * @throw {Error} if missing parameters or node with same endpoint already added, or if any error occured while processing the call
+ */
+NodeManager.prototype.addNode = function(nodeData) {
+  
+  if (!nodeData || !nodeData.endpoint || !nodeData.name) {
+    
+    throw {
+      errorCode: "Missing_Parameter",
+      errorDetail: "NodeManager.addNode: nodeData.endpoint, nodeData.nam cannot be null or empty" 
+    };
+  }
+  
+  var node = JSON.parse(JSON.stringify(nodeData));
+    
+  // if node with same endpoint does not exist, create new device otherwise throw exception
+  if (this.nodeExist(node.endpoint)) {
+    
+    throw {
+      errorCode: "Duplicate_Node",
+      errorDetail: "NodeManager.addNode: node with endpoint " + node.endpoint + " was already added"
+    };
+  }
+  
+  if (node.type && Object.keys(NODE_TYPES).indexOf(node.type ) == -1) {
+    
+    throw {
+      errorCode: "Invalid_Parameter",
+      errorDetail: "NodeManager.addNode: node type can only be one of " + JSON.stringify(Object.keys(NODE_TYPES))
+    };
+  }
+  
+  node.password = node.password ? node.password : node.name;
+  node.groups = NODES_GROUP;
+  node.type = node.type ? node.type : NODE_TYPES.EDGE
+  
+  // create the node as a device
+  var resp = device.create(node);
+  if (resp.metadata.status == "failure") {
+    
+    throw {
+      errorCode: resp.metadata.errorCode,
+      errorDetail: "NodeManager.addNode: " + resp.metadata.errorDetail
+    };
+  }
+  
+  // generate a token for that node
+  var token = this.renewNodeToken(resp.result.device.id);
+  
+  // return node id and token
+  return {
+    id: resp.result.device.id,
+    token: token
+  };
+};
+
+/**
+ * @methode removeNode
+ * @param {String} nodeId
+ * @throws {Error} if nodeId is missing, if node does not exist or if an error occured while processing the call
+ */
+NodeManager.prototype.removeNode = function(nodeId) {
+  
+  if (!nodeId) {
+    
+    throw {
+      errorCode: "Missing_Parameter",
+      errorDetail: "NodeManager.removeNode: nodeId cannot be null or empty"
+    };
+  }
+  
+  var resp = device.delete(nodeId);
+  if (resp.metadata.status == "failure") {
+    
+    throw {
+      errorCode: resp.metadata.errorCode,
+      errorDetail: "NodeManager.removeNode: " + resp.metadata.errorDetail
+    };
+  }
+  
+  return resp.result;
+};
+
+/**
+ * @method getNode
+ * @param {String} id: identifier of the node
+ * @return {Object} the node
+ * @throws{Error} if the node does not exist or if id is undefined
+ */
+NodeManager.prototype.getNode = function(id) {
+  
+  var resp = device.get(id);
+  if (resp.metadata.status == "failure") {
+    
+    throw {
+      errorCode: resp.metadata.errorCode,
+      errorDetail: "NodeManager.getNode: could not get node\n" + resp.metadata.errorDetail
+    };
+  }
+  
+  return resp.result;
+};
+
+/**
+ * @method nodeExist
+ * @param {String} endpoint
+ * @return {Boolean} true if node with same endpoint is found
+ */
+NodeManager.prototype.nodeExist = function(endpoint) {
+  
+  if (!endpoint) {
+    
+    throw {
+      errorCode: "Missing_Parameter",
+      errorDetail: "NodeManager.nodeExist: endpoint cannot be null or empty" 
+    };    
+  }
+  
+  var resp = device.query({query:'endpoint="' + endpoint + '"', fields: "endpoint"});
+  if (resp.metadata.status == "failure") {
+    
+    log.error("NodeManager.nodeExist: error occured while checking for node existence\n" + JSON.stringify(resp));
+    throw {
+      errorCode: resp.metadata.errorCode,
+      errorDetail: "NodeManager.nodeExist: " + resp.metadata.errorDetail
+    };
+  }
+  
+  return (resp.result.documents && resp.result.documents.length > 0);  
+};
+
+/**
+ * @method searchNodes
+ * @param {Object} filters: map of search criteria with corresponding expected values
+ * @param {Number} pageIndex: optional, index of the page to return in case of pagination
+ * @return {Object} {nodes: Array, count: total nodes}
+ */
+NodeManager.prototype.searchNodes = function(filters, pageIndex) {
+  
+  var query = "";
+  if (filters && typeof(filters) != "object") {
+    
+    throw {
+      errorCode: "Invalid_Parameter",
+      errorDetail: "NodeManager.searchNodes: invalid filter format. Should be a JavaScript/JSON object (key/value)"
+    };
+  } 
+  
+  if (filters){
+    
+    for (var key in filters){
+      
+      query = query ? query + " AND " : query; 
+      query += key + ' = "'+ filters[key] + '"';
+    }
+  }
+ 
+  var resp = device.query({query: query, fields: "*", count: true});
+  if (pageIndex){
+    resp.pageIndex = pageIndex;
+  }
+  
+  if (resp.metadata.status == "failure") {
+    
+    log.error("NodeManager.searchNodes: error occured while searching for node existence\n" + JSON.stringify(resp));
+    throw {
+      errorCode: resp.metadata.errorCode,
+      errorDetail: "NodeManager.nodeExist: " + resp.metadata.errorDetail
+    };
+  }
+  
+  return resp;//.result.documents ;  
+};
+
+/**
+ * Renews the token of a given node. If no token was already created, creates one
+ * @method renewNodeToken
+ * @param {String} nodeId
+ * @return {String} new auth token
+ * @throws {Error} if nodeId is null or nodeId not found
+ */
+NodeManager.prototype.renewNodeToken = function(nodeId) {  
+  
+  var resp = device.regenerateToken(nodeId);
+  var failure = false;
+  if (resp.metadata.status == "failure") {
+    
+    failure = true;
+    if (resp.metadata.errorCode == "TOKEN_NOT_FOUND") {
+      resp = device.generateToken(nodeId);
+    }
+    
+    failure =  resp.metadata.status == "failure";
+  }
+  
+  if (failure){
+   
+    throw {
+      errorCode: resp.metadata.errorCode,
+      errorDetail: "NodeManager.renewNodeToken: could not renew token - " + resp.metadata.errorDetail
+    };
+  }
+  
+  return resp.result.token;
+};
+
