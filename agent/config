@@ -11,8 +11,8 @@ const AGENT_ROLES = {
 
 var serviceDirectory = {
   
-  url: "",
-  token: "" // place here the token obtained when adding the current node to the master node
+  url: "https://masternode.scriptrapps.io",
+  token: "SUM3NjY4QUIyODpndWVzdDpDMUNCRDE4Q0I2M0ZBRTZFODhFMUFCMURCRUZEMTE1Nw==" // guest token
 };
 
 agentType = AGENT_TYPES.MASTER;

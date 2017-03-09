@@ -19,6 +19,22 @@ var authentication = require("/agent/authentication");
  */
 function SmartAgent(dto) {
 
+  if (!storage.global.agent) {    
+  	storage.global.agent = {};  
+  }
+  
+  if (!storage.global.agent.subscriptions) {
+   storage.global.agent.subscriptions = {};
+  }
+  
+  if (!storage.global.agent.providers) {
+    storage.global.agent.providers = {};
+  }
+  
+  if (!storage.global.agent.services) {
+    storage.global.agent.services = {};
+  }
+ 
   var dirDto = null;
   if (!dto) {
     dirDto = this._loadConfig();   
@@ -38,9 +54,9 @@ function SmartAgent(dto) {
         errorCode: "Invalid_Parameter",
         errorDetail: "SmartAgent: dto.tokenAtServiceDirectoy cannot be null or empty"
       };
-    }
-     
-    var dirDto = {
+    }    
+    
+  var dirDto = {
       
       serviceDirUrl: dto.serviceDirectory,
       serviceDirToken: dto.tokenAtServiceDirectoy
@@ -49,23 +65,7 @@ function SmartAgent(dto) {
   
   this.directory = new directoryModule.Directory(dirDto);
   this.nodeManager = new nodemanagement.NodeManager(dirDto);
-  this.authenticationService = new authentication.AuthenticationService(this.nodeManager, this.directory, dirDto);
-  
-  if (!storage.global.agent) {    
-  	storage.global.agent = {};  
-  }
-  
-  if (!storage.global.agent.subscriptions) {
-   storage.global.agent.subscriptions = {};
-  }
-  
-  if (!storage.global.agent.providers) {
-    storage.global.agent.providers = {};
-  }
-  
-  if (!storage.global.agent.services) {
-    storage.global.agent.services = {};
-  }
+  this.authenticationService = new authentication.AuthenticationService(this.nodeManager, this.directory, dirDto);  
 }
 
 /**
@@ -280,17 +280,12 @@ SmartAgent.prototype.loadServiceProvider = function(providerName) {
  */
 SmartAgent.prototype._loadConfig = function() { 
   
-  var token = storage.global.agent.token; // load the token obtained from master node if any
-  if (!token) {
-    var res = this.directory.addToMasterNode(config.serviceDirectory.token);
-    token = res.token;
-    id = res.id;
-  }
   return {
    
     serviceDirUrl: config.serviceDirectory.url,
-    serviceDirToken: config.serviceDirectory.token
-  }
+    serviceDirToken: storage.global.agent.token,
+    id: storage.global.agent.id
+  };
 };
 
 /*

@@ -1,0 +1,62 @@
+var config = require("/agent/config");
+var http = require("http");
+
+return addToMasterNode();
+
+/**
+ * Add self to the cluster managed by the master node.
+ * Obtain specific auth token. Will use anonymous token for that
+ * @subscribeToDirectory
+ */
+function addToMasterNode() {
+  
+   var providerDto = {
+  	
+     name: encodeURIComponent(config.agentName),
+     endpoint: encodeURIComponent(config.agentEndpoint),
+     //serviceTypes: encodeURIComponent(serviceType)
+  };
+  
+  var callParam = {
+    
+    url: config.serviceDirectory.url + "/agent/api/addNode",
+    headers : {
+      "Authorization": "Bearer : " +  config.serviceDirectory.token
+    },
+    params: providerDto,
+  	method: "POST"
+  };
+ 
+  var response = http.request(callParam);
+  if (response.status != 200) {
+    
+    return {
+      errorCode: respone.status
+    };
+  }
+  
+  var response = JSON.parse(response.body).response;
+  if (response.metadata.status == "failure") {
+    
+    return {
+      errorCode: response.metadata.erroCode,
+      errorDetail: response.metadata.errorDetail
+    };
+  }
+  
+  if (response.result.errorCode) {
+    
+    return {
+      errorCode: response.result.errorCode,
+      errorDetail: response.result.errorDetail
+    };
+  }
+  
+  if (!storage.global.agent) {    
+  	storage.global.agent = {};  
+  }
+  
+  storage.global.agent.id = result.id;
+  storage.global.agent.token = result.token;
+  return response.result;
+};

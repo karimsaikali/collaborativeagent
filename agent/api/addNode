@@ -23,7 +23,7 @@ try {
   
   var smartAgent = new agent.SmartAgent();
   var nodeManager = smartAgent.getNodeManager();
-  return nodeManager.addNode(nodeData);
+  return nodeManager.addNode(nodeData);  
 }catch(exception){
   return exception;
 }

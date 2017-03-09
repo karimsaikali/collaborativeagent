@@ -13,39 +13,6 @@ function Directory(dto) {
 }
 
 /**
- * Add self to the cluster managed by the master node.
- * Obtain specific auth token. Will use anonymous token for that
- * @subscribeToDirectory
- */
-Directory.prototype.addToMasterNode = function(serviceDirToken) {
-  
-   var providerDto = {
-  	
-     name: encodeURIComponent(config.agentName),
-     endPoint: encodeURIComponent(config.agentEndpoint),
-     serviceTypes: encodeURIComponent(serviceType)
-  };
-  
-  var bodyStr = JSON.stringify(providerDto);
-  var callParam = {
-    
-    url: this.serviceDirUrl + "/agent/api/addNode",
-    headers : {
-      
-      "Content-Type": 'application/json',
-      "Content-Length": "" + bodyStr.length,
-      "Authorization": "Bearer : " +  serviceDirToken
-    },
-    bodyString: bodyStr,
-  	method: "POST"
-  };
- 
-  var response = http.request(callParam);
-  return this._parseResponse(response);
-};
-
-
-/**
  * Subscribe self to the main service directory
  * @subscribeToDirectory
  */
@@ -134,7 +101,7 @@ Directory.prototype.isServiceConsumerTokenValid = function(id, token) {
  * Parse the response resulting from the request sent to the remote service
  */
 Directory.prototype._parseResponse = function(resp) {
-  
+  console.log(JSON.stringify(resp))
   var body = resp.body ? JSON.parse(resp.body) : {};
   if (resp.status < "200" || resp.status >= "300") {
     

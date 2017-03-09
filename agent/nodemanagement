@@ -56,7 +56,7 @@ NodeManager.prototype.addNode = function(nodeData) {
     
     throw {
       errorCode: "Missing_Parameter",
-      errorDetail: "NodeManager.addNode: nodeData.endpoint, nodeData.nam cannot be null or empty" 
+      errorDetail: "NodeManager.addNode: nodeData.endpoint, nodeData.name cannot be null or empty" 
     };
   }
   
